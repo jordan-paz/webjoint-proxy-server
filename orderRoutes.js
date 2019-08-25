@@ -1,9 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const fetch = require("node-fetch");
-const cors = require("cors");
 
-router.use(cors());
+router.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  next();
+});
 
 // Fetch cart data from webjoint API //
 const getOrder = (
@@ -36,7 +42,8 @@ const createOrder = (deliveryAddress, authorization) => {
       "Content-Type": "application/json",
       Accept: "application/json",
       Referer: "https://sacramentoconfidential.webjoint.com/shop/index.html",
-      Authorization: authorization
+      Authorization: authorization,
+      "Access-Control-Allow-Origin": "*"
     },
     body: JSON.stringify(deliveryAddress)
   }).then(response => response.json());
@@ -91,7 +98,6 @@ router.get("/order", async (req, res) => {
 router.post("/createOrder", async (req, res) => {
   try {
     const { authorization } = req.headers;
-    const deliveryAddress = req.body;
     res.send(await createOrder(deliveryAddress, authorization));
   } catch (err) {
     console.log(err);
@@ -99,8 +105,8 @@ router.post("/createOrder", async (req, res) => {
   }
 });
 
-// @route         POST /createCart
-// @description   Create cart
+// @route         POST /createOrder
+// @description   Create order
 // @access        Users
 router.post("/addToOrder", async (req, res) => {
   try {

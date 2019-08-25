@@ -6,9 +6,9 @@ require("dotenv").config();
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 app.use(morgan("tiny"));
-app.use(cors());
 
 app.use("/", require("./authRoutes"));
 app.use("/", require("./orderRoutes"));
