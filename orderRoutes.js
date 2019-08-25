@@ -98,6 +98,7 @@ router.get("/order", async (req, res) => {
 router.post("/createOrder", async (req, res) => {
   try {
     const { authorization } = req.headers;
+    const deliveryAddress = req.body;
     res.send(await createOrder(deliveryAddress, authorization));
   } catch (err) {
     console.log(err);
