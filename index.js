@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(morgan("tiny"));
 
 app.use("/", require("./authRoutes"));
-app.use("/", require("./orderRoutes"));
+app.use("/order/", require("./orderRoutes"));
 
 const notFound = (req, res, next) => {
   const error = new Error("Not Found");

@@ -12,80 +12,84 @@ router.use(function(req, res, next) {
 });
 
 // Fetch cart data from webjoint API //
-const getOrder = (
-  companyid,
-  facilityid,
-  customerid,
-  orderid,
-  authorization
-) => {
-  const url = `https://app.webjoint.com/prod/api/orders/${companyid}-${facilityid}-${customerid}-${orderid}`;
-
-  return fetch(url, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Referer: "https://sacramentoconfidential.webjoint.com/shop/index.html",
-      Authorization: authorization
-    }
-  }).then(response => response.json());
+const getOrder = async (orderid, authorization) => {
+  const url = `https://app.webjoint.com/prod/api/orders/${orderid}`;
+  try {
+    return await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Referer: "https://sacramentoconfidential.webjoint.com/shop/index.html",
+        Authorization: authorization
+      }
+    })
+      .then(response => response.json())
+      .catch(error => {
+        console.log(error);
+      });
+  } catch (err) {
+    console.log("error:" + err);
+    return res.status(500).send("Server Error");
+  }
 };
 
 // MUST PASS IDTOKEN AS AUTHORIZATION!!! //
 const createOrder = (deliveryAddress, authorization) => {
-  const url = `https://app.webjoint.com/prod/api/facilities/51/createOrder/Website/Delivery`;
-
-  return fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Referer: "https://sacramentoconfidential.webjoint.com/shop/index.html",
-      Authorization: authorization,
-      "Access-Control-Allow-Origin": "*"
-    },
-    body: JSON.stringify(deliveryAddress)
-  }).then(response => response.json());
+  try {
+    const url = `https://app.webjoint.com/prod/api/facilities/51/createOrder/Website/Delivery`;
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Referer: "https://sacramentoconfidential.webjoint.com/shop/index.html",
+        Authorization: authorization,
+        "Access-Control-Allow-Origin": "*"
+      },
+      body: deliveryAddress
+    }).then(response => {
+      return response.json();
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send("Server Error");
+  }
 };
 
-const addToOrder = ({
-  companyid,
-  facilityid,
-  customerid,
-  orderid,
-  productid,
-  variantid,
-  authorization
-}) => {
-  const url = `https://app.webjoint.com/prod/api/orders/${companyid}-${facilityid}-${customerid}-${orderid}/addToCart/${companyid}-${facilityid}-${productid}-${variantid}/1?facilityId=51`;
-
-  return fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Referer: "https://sacramentoconfidential.webjoint.com/shop/index.html",
-      Authorization: authorization
-    }
-  }).then(response => response.json());
+const addToOrder = (orderId, productId, quantity, authorization) => {
+  try {
+    console.log(
+      "ORDER: " + orderId,
+      "PRODUCT :" + productId,
+      "QUANTITY :" + quantity
+    );
+    const url = `https://app.webjoint.com/prod/api/orders/${orderId}/addToCart/${productId}/${quantity}?facilityId=51`;
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Referer: "https://sacramentoconfidential.webjoint.com/shop/index.html",
+        Authorization: authorization
+      }
+    }).then(response => {
+      return response.json();
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send("Server Error");
+  }
 };
 
 // @route         GET /cart
 // @description   Get cart
 // @access        Users
-router.get("/order", async (req, res) => {
+router.get("/:orderId", async (req, res) => {
   try {
-    const {
-      companyid,
-      facilityid,
-      customerid,
-      orderid,
-      authorization
-    } = req.headers;
-    res.send(
-      await getOrder(companyid, facilityid, customerid, orderid, authorization)
-    );
+    const { orderId } = req.params;
+    const { authorization } = req.headers;
+    res.send(await getOrder(orderId, authorization));
   } catch (err) {
     console.log(err);
     return res.status(500).send("Server Error");
@@ -98,7 +102,8 @@ router.get("/order", async (req, res) => {
 router.post("/createOrder", async (req, res) => {
   try {
     const { authorization } = req.headers;
-    const deliveryAddress = req.body;
+    const { deliveryAddress } = req.body;
+
     res.send(await createOrder(deliveryAddress, authorization));
   } catch (err) {
     console.log(err);
@@ -106,12 +111,34 @@ router.post("/createOrder", async (req, res) => {
   }
 });
 
-// @route         POST /createOrder
-// @description   Create order
+// @route         POST /addToOrder
+// @description   Add a product to order
 // @access        Users
-router.post("/addToOrder", async (req, res) => {
+router.post("/:orderId/addToOrder/:productId/:quantity?", async (req, res) => {
   try {
-    res.send(await addToOrder(req.headers));
+    let quantity;
+    if (req.params.quantity) {
+      quantity = req.params.quantity;
+    } else {
+      quantity = 1;
+    }
+    const { orderId, productId } = req.params;
+    const { authorization } = req.headers;
+
+    const response = await addToOrder(
+      orderId,
+      productId,
+      quantity,
+      authorization
+    );
+
+    if (response.name === "ShopClosedError") {
+      return res.status(200).json({
+        error: "SHOP_CLOSED",
+        msg: "Sorry, the shop is closed"
+      });
+    }
+    return res.send(response);
   } catch (err) {
     console.log(err);
     return res.status(500).send("Server Error");
