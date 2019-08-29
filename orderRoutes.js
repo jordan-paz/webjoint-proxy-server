@@ -59,11 +59,6 @@ const createOrder = (deliveryAddress, authorization) => {
 
 const addToOrder = (orderId, productId, quantity, authorization) => {
   try {
-    console.log(
-      "ORDER: " + orderId,
-      "PRODUCT :" + productId,
-      "QUANTITY :" + quantity
-    );
     const url = `https://app.webjoint.com/prod/api/orders/${orderId}/addToCart/${productId}/${quantity}?facilityId=51`;
     return fetch(url, {
       method: "POST",
@@ -104,7 +99,14 @@ router.post("/createOrder", async (req, res) => {
     const { authorization } = req.headers;
     const { deliveryAddress } = req.body;
 
-    res.send(await createOrder(deliveryAddress, authorization));
+    const response = await createOrder(deliveryAddress, authorization);
+    if (response.name === "ShopClosedError") {
+      return res.status(200).json({
+        error: "SHOP_CLOSED",
+        msg: "Sorry, the shop is closed"
+      });
+    }
+    res.send(response);
   } catch (err) {
     console.log(err);
     return res.status(500).send("Server Error");
