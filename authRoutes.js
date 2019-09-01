@@ -18,9 +18,30 @@ const login = (email, password) => {
   }).then(response => response.json());
 };
 
+const checkEmail = email => {
+  const url = `https://app.webjoint.com/prod/api/users/check?email=${email}`;
+  return fetch(url, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Referer: "https://sacramentoconfidential.webjoint.com/shop/index.html"
+    }
+  }).then(response => response.json());
+};
+
 router.post("/login", async (req, res) => {
   try {
     res.send(await login(req.body.email, req.body.password));
+  } catch (err) {
+    console.log("error:" + err);
+    return res.status(500).send("Server Error");
+  }
+});
+
+router.get("/checkEmail/:email", async (req, res) => {
+  try {
+    res.send(await checkEmail(req.params.email));
   } catch (err) {
     console.log("error:" + err);
     return res.status(500).send("Server Error");
